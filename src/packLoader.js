@@ -47,13 +47,11 @@ function validatePack(data) {
     throw new Error('Pack braucht packId, packName und clips[].');
   }
   for (const clip of data.clips) {
-    if (!clip.id || !clip.youtubeId || !Array.isArray(clip.segments) || clip.segments.length === 0) {
-      throw new Error(`Clip "${clip.id || '?'}" ist unvollständig (id, youtubeId, segments[] nötig).`);
+    if (!clip.id || !clip.youtubeId) {
+      throw new Error(`Clip "${clip.id || '?'}" ist unvollständig (id, youtubeId nötig).`);
     }
-    for (const seg of clip.segments) {
-      if (typeof seg.start !== 'number' || typeof seg.end !== 'number' || seg.end <= seg.start) {
-        throw new Error(`Clip "${clip.id}" hat ein ungültiges Segment (start/end).`);
-      }
+    if (typeof clip.startTime !== 'number' || typeof clip.endTime !== 'number' || clip.endTime <= clip.startTime) {
+      throw new Error(`Clip "${clip.id}" hat ungültige startTime/endTime.`);
     }
   }
 }
