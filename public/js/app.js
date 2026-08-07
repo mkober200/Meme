@@ -113,15 +113,20 @@ function applyJoinResult(res) {
   el('codeBadge').classList.remove('hidden');
   showScreen('screen-lobby');
   loadPacksIntoSelect();
+  if (lastLobbyStatePayload && lastLobbyStatePayload.state === 'LOBBY') {
+    renderLobby(lastLobbyStatePayload);
+  }
 }
 
+let lastLobbyStatePayload = null;
 socket.on('lobby:state', (payload) => {
+  lastLobbyStatePayload = payload;
   state.isHost = payload.hostId === state.playerId;
   if (payload.round > 0) {
     el('roundBadge').textContent = `Runde ${payload.round}/${payload.config.maxRounds}`;
     el('roundBadge').classList.remove('hidden');
   }
-  if (payload.state === 'LOBBY') renderLobby(payload);
+  if (payload.state === 'LOBBY' && state.playerId) renderLobby(payload);
 });
 
 function ensureConfigSelectsPopulated(limits) {
