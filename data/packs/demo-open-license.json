@@ -1,44 +1,34 @@
 {
   "packId": "demo-open-license",
   "packName": "Demo-Pack (offen lizenziert)",
-  "packDescription": "Ausschnitte aus 'Tears of Steel' (Blender Foundation, 2012), veröffentlicht unter CC BY 3.0. Nur zu Demo-Zwecken.",
+  "packDescription": "Ausschnitte aus 'Tears of Steel' (Blender Foundation, 2012), veröffentlicht unter CC BY 3.0. Nur zu Demo-Zwecken. Für eigene Clips: im Spiel 'Eigenen Clip verwenden' nutzen.",
   "clips": [
     {
       "id": "tos-scene-1",
       "title": "Tears of Steel – Szene: Brücke",
-      "youtubeId": "R6MlUcmOul8",
-      "sourceUrl": "https://www.youtube.com/watch?v=R6MlUcmOul8",
+      "youtubeId": "iD_MyDbP_ZE",
+      "sourceUrl": "https://www.youtube.com/watch?v=iD_MyDbP_ZE",
       "license": "CC BY 3.0 – Blender Foundation (mango.blender.org)",
-      "segments": [
-        { "start": 60, "end": 74 },
-        { "start": 95, "end": 109 },
-        { "start": 130, "end": 144 }
-      ]
+      "startTime": 60,
+      "endTime": 150
     },
     {
       "id": "tos-scene-2",
       "title": "Tears of Steel – Szene: Amsterdam",
-      "youtubeId": "R6MlUcmOul8",
-      "sourceUrl": "https://www.youtube.com/watch?v=R6MlUcmOul8",
+      "youtubeId": "iD_MyDbP_ZE",
+      "sourceUrl": "https://www.youtube.com/watch?v=iD_MyDbP_ZE",
       "license": "CC BY 3.0 – Blender Foundation (mango.blender.org)",
-      "segments": [
-        { "start": 210, "end": 224 },
-        { "start": 250, "end": 264 },
-        { "start": 285, "end": 299 }
-      ]
+      "startTime": 210,
+      "endTime": 310
     },
     {
       "id": "tos-scene-3",
       "title": "Tears of Steel – Szene: Konfrontation",
-      "youtubeId": "R6MlUcmOul8",
-      "sourceUrl": "https://www.youtube.com/watch?v=R6MlUcmOul8",
+      "youtubeId": "iD_MyDbP_ZE",
+      "sourceUrl": "https://www.youtube.com/watch?v=iD_MyDbP_ZE",
       "license": "CC BY 3.0 – Blender Foundation (mango.blender.org)",
-      "segments": [
-        { "start": 400, "end": 414 },
-        { "start": 430, "end": 444 },
-        { "start": 460, "end": 474 },
-        { "start": 490, "end": 504 }
-      ]
+      "startTime": 400,
+      "endTime": 510
     }
   ]
 }
