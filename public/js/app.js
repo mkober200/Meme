@@ -1,10 +1,5 @@
 'use strict';
 
-/* ==========================================================
-   DubClash – Client
-   Reines Vanilla-JS, kein Build-Schritt nötig.
-   ========================================================== */
-
 const el = (id) => document.getElementById(id);
 const socket = io();
 
@@ -40,9 +35,8 @@ const state = {
   audioCtx: null,
   analyser: null,
   currentClip: null,
-  segments: [],
-  segmentIndex: 0,
-  recordings: {},
+  cuts: [],
+  pendingCutTime: 0,
   skipsUsed: 0,
   skipsAllowed: 0,
   deadline: null,
@@ -291,9 +285,7 @@ function loadVideo(player, videoId) {
 
 socket.on('round:you', (payload) => {
   state.currentClip = payload.clip;
-  state.segments = payload.clip.segments;
-  state.segmentIndex = 0;
-  state.recordings = {};
+  state.cuts = [];
   state.skipsUsed = payload.skipsUsed;
   state.skipsAllowed = payload.skipsAllowed;
   state.deadline = payload.deadline;
@@ -311,17 +303,19 @@ socket.on('round:you', (payload) => {
 async function startDubbingFlow() {
   showScreen('screen-dub');
   el('waitingForOthers').classList.add('hidden');
-  el('btnSubmitDub').classList.add('hidden');
+  el('btnSubmitDub').classList.remove('hidden');
   el('btnSubmitDub').disabled = false;
-  el('btnNextSegment').classList.add('hidden');
   setClipCredit('dubCredit', state.currentClip);
   updateSkipUI();
+  updateCutsCounter();
   startCountdown();
+  resetCustomClipForm();
 
   const player = await getOrCreateDubPlayer(state.currentClip.youtubeId);
   await loadVideo(player, state.currentClip.youtubeId);
-  renderSegmentTrack();
-  playCurrentSegment();
+  player.mute();
+  player.seekTo(state.currentClip.startTime, true);
+  playFreely();
 }
 
 function setClipCredit(elId, clip) {
@@ -330,56 +324,31 @@ function setClipCredit(elId, clip) {
   el(elId).textContent = parts.length ? `Quelle: ${parts.join(' · ')}` : '';
 }
 
-function renderSegmentTrack() {
-  const track = el('segmentTrack');
-  track.innerHTML = '';
-  state.segments.forEach(() => {
-    const chip = document.createElement('div');
-    chip.className = 'segment-chip';
-    track.appendChild(chip);
-  });
-  updateSegmentTrackUI();
-}
-function updateSegmentTrackUI() {
-  [...el('segmentTrack').children].forEach((chip, i) => {
-    chip.classList.toggle('done', state.recordings[i] != null);
-    chip.classList.toggle('active', i === state.segmentIndex);
-  });
+function updateCutsCounter() {
+  const n = state.cuts.length;
+  el('cutsCounter').textContent = `${n} Einwurf${n === 1 ? '' : 'e'}`;
 }
 
-let segmentWatcher = null;
-function playCurrentSegment() {
-  const seg = state.segments[state.segmentIndex];
-  if (!seg) return;
-  updateSegmentTrackUI();
-  el('recordOverlay').classList.add('playing');
-  el('recordHint').textContent = 'Schau + hör dir die Szene an…';
-  el('btnRecord').classList.add('hidden');
-  el('btnNextSegment').classList.add('hidden');
-
+let clipLoopWatcher = null;
+function playFreely() {
   const player = state.ytDub;
+  el('recordOverlay').classList.add('playing');
+  el('recordHint').textContent = state.cuts.length === 0
+    ? 'Clip läuft – klick auf „Jetzt sprechen“, wann immer du eine Zeile sagen willst.'
+    : 'Aufgenommen! Der Clip läuft weiter – wieder klicken für die nächste Zeile.';
+  el('btnRecord').classList.remove('hidden', 'recording');
+  el('btnRecord').textContent = '● Jetzt sprechen';
   player.mute();
-  player.seekTo(seg.start, true);
   player.playVideo();
 
-  clearInterval(segmentWatcher);
-  segmentWatcher = setInterval(() => {
+  clearInterval(clipLoopWatcher);
+  clipLoopWatcher = setInterval(() => {
     let t = 0;
     try { t = player.getCurrentTime(); } catch (e) { return; }
-    if (t >= seg.end) {
-      clearInterval(segmentWatcher);
-      player.pauseVideo();
-      enterRecordingMode();
+    if (t >= state.currentClip.endTime) {
+      player.seekTo(state.currentClip.startTime, true);
     }
-  }, 100);
-}
-
-function enterRecordingMode() {
-  el('recordOverlay').classList.remove('playing');
-  el('recordHint').textContent = 'Jetzt du! Aufnahme starten und die Zeile sprechen.';
-  el('btnRecord').classList.remove('hidden');
-  el('btnRecord').textContent = '●';
-  el('btnRecord').classList.remove('recording');
+  }, 200);
 }
 
 let mediaChunks = [];
@@ -387,9 +356,9 @@ let voiceRingRaf = null;
 
 el('btnRecord').addEventListener('click', () => {
   if (!state.mediaRecorder || state.mediaRecorder.state === 'inactive') {
-    startRecordingSegment();
+    startCut();
   } else {
-    stopRecordingSegment();
+    stopCut();
   }
 });
 
@@ -398,7 +367,19 @@ function pickMimeType() {
   return candidates.find((c) => window.MediaRecorder && MediaRecorder.isTypeSupported(c)) || '';
 }
 
-function startRecordingSegment() {
+function startCut() {
+  const player = state.ytDub;
+  let t = state.currentClip.startTime;
+  try { t = player.getCurrentTime(); } catch (e) { }
+  state.pendingCutTime = t;
+
+  clearInterval(clipLoopWatcher);
+  player.pauseVideo();
+  el('recordOverlay').classList.remove('playing');
+  el('recordHint').textContent = 'Aufnahme läuft… nochmal drücken zum Stoppen.';
+  el('btnRecord').classList.add('recording');
+  el('btnRecord').textContent = '■ Fertig';
+
   mediaChunks = [];
   const mimeType = pickMimeType();
   const mr = new MediaRecorder(state.micStream, mimeType ? { mimeType } : undefined);
@@ -410,28 +391,18 @@ function startRecordingSegment() {
     const blob = new Blob(mediaChunks, { type: mr.mimeType || 'audio/webm' });
     const reader = new FileReader();
     reader.onload = () => {
-      state.recordings[state.segmentIndex] = reader.result;
-      updateSegmentTrackUI();
-      if (isLastSegment()) {
-        el('btnSubmitDub').classList.remove('hidden');
-        el('recordHint').textContent = 'Letzter Cut aufgenommen – bereit zum Abgeben!';
-      } else {
-        el('btnNextSegment').classList.remove('hidden');
-        el('recordHint').textContent = 'Aufgenommen! Weiter zum nächsten Cut.';
-      }
+      state.cuts.push({ t: state.pendingCutTime, audio: reader.result });
+      updateCutsCounter();
+      playFreely();
     };
     reader.readAsDataURL(blob);
   };
   mr.start();
-  el('btnRecord').classList.add('recording');
-  el('btnRecord').textContent = '■';
-  el('recordHint').textContent = 'Aufnahme läuft… nochmal drücken zum Stoppen.';
   animateVoiceRing();
 }
-function stopRecordingSegment() {
+function stopCut() {
   if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') state.mediaRecorder.stop();
 }
-function isLastSegment() { return state.segmentIndex >= state.segments.length - 1; }
 
 function animateVoiceRing() {
   const data = new Uint8Array(state.analyser.frequencyBinCount);
@@ -448,37 +419,63 @@ function animateVoiceRing() {
   tick();
 }
 
-el('btnNextSegment').addEventListener('click', () => {
-  state.segmentIndex += 1;
-  el('btnNextSegment').classList.add('hidden');
-  playCurrentSegment();
-});
-
 el('btnSubmitDub').addEventListener('click', async () => {
+  if (state.cuts.length === 0) {
+    const proceed = confirm('Du hast noch keine Aufnahme gemacht – trotzdem als stummen Clip abgeben?');
+    if (!proceed) return;
+  }
   el('btnSubmitDub').disabled = true;
-  const res = await emitAck('round:submit', { recordings: state.recordings });
+  clearInterval(clipLoopWatcher);
+  const res = await emitAck('round:submit', { cuts: state.cuts });
   if (!res.ok) { alert(res.error); el('btnSubmitDub').disabled = false; return; }
   el('btnSubmitDub').classList.add('hidden');
   el('waitingForOthers').classList.remove('hidden');
   stopCountdown();
 });
 
+async function applyNewClip(clip, skipsUsed) {
+  state.currentClip = clip;
+  state.cuts = [];
+  if (typeof skipsUsed === 'number') state.skipsUsed = skipsUsed;
+  updateSkipUI();
+  updateCutsCounter();
+  setClipCredit('dubCredit', clip);
+  el('btnSubmitDub').classList.remove('hidden');
+  el('btnSubmitDub').disabled = false;
+  const player = state.ytDub;
+  await loadVideo(player, clip.youtubeId);
+  player.mute();
+  player.seekTo(clip.startTime, true);
+  playFreely();
+}
+
 el('btnSkip').addEventListener('click', async () => {
   const res = await emitAck('round:skip', {});
   if (!res.ok) return alert(res.error);
-  state.currentClip = res.clip;
-  state.segments = res.clip.segments;
-  state.segmentIndex = 0;
-  state.recordings = {};
-  state.skipsUsed = res.skipsUsed;
-  updateSkipUI();
-  setClipCredit('dubCredit', state.currentClip);
-  el('btnSubmitDub').classList.add('hidden');
-  const player = state.ytDub;
-  await loadVideo(player, state.currentClip.youtubeId);
-  renderSegmentTrack();
-  playCurrentSegment();
+  await applyNewClip(res.clip, res.skipsUsed);
 });
+
+el('btnUseCustomClip').addEventListener('click', async () => {
+  const youtubeId = el('customYoutube').value.trim();
+  const startTime = Number(el('customStart').value);
+  const endTime = Number(el('customEnd').value);
+  el('customClipError').classList.add('hidden');
+  if (!youtubeId) return showCustomClipError('Bitte einen YouTube-Link oder eine Video-ID eingeben.');
+  const res = await emitAck('round:useCustomClip', { youtubeId, startTime, endTime });
+  if (!res.ok) return showCustomClipError(res.error);
+  document.querySelector('.custom-clip').open = false;
+  await applyNewClip(res.clip);
+});
+function showCustomClipError(msg) {
+  const e = el('customClipError');
+  e.textContent = msg;
+  e.classList.remove('hidden');
+}
+function resetCustomClipForm() {
+  el('customYoutube').value = '';
+  el('customClipError').classList.add('hidden');
+}
+
 function updateSkipUI() {
   const left = state.skipsAllowed - state.skipsUsed;
   el('skipsLeft').textContent = left;
@@ -516,30 +513,49 @@ socket.on('voting:target', async (payload) => {
   const player = await getOrCreateVotePlayer(payload.clip.youtubeId);
   await loadVideo(player, payload.clip.youtubeId);
   player.mute();
-  player.seekTo(payload.clip.segments[0].start, true);
+  player.seekTo(payload.clip.startTime, true);
 });
 
 el('btnPlayDub').addEventListener('click', () => {
   if (state.voteTarget) playDubReconstruction(state.voteTarget);
 });
 
+function waitUntilVideoTime(player, targetTime) {
+  return new Promise((resolve) => {
+    const deadline = Date.now() + 30000;
+    (function check() {
+      let t = 0;
+      try { t = player.getCurrentTime(); } catch (e) { }
+      if (t >= targetTime || Date.now() > deadline) return resolve();
+      setTimeout(check, 100);
+    })();
+  });
+}
+
 async function playDubReconstruction(target) {
   el('btnPlayDub').disabled = true;
   const player = state.ytVote;
-  for (let i = 0; i < target.clip.segments.length; i++) {
-    const seg = target.clip.segments[i];
+  const clip = target.clip;
+  const cuts = (target.cuts || []).slice().sort((a, b) => a.t - b.t);
+
+  player.mute();
+  player.seekTo(clip.startTime, true);
+  player.playVideo();
+
+  for (const cut of cuts) {
+    await waitUntilVideoTime(player, cut.t);
+    player.pauseVideo();
+    const audioEl = new Audio(cut.audio);
+    const audioDone = new Promise((resolve) => {
+      audioEl.addEventListener('ended', resolve, { once: true });
+      audioEl.addEventListener('error', resolve, { once: true });
+    });
+    audioEl.play().catch(() => {});
+    await Promise.race([audioDone, wait(15000)]);
     player.mute();
-    player.seekTo(seg.start, true);
     player.playVideo();
-    const audioUrl = target.recordings ? target.recordings[i] : null;
-    let audioEl = null;
-    if (audioUrl) {
-      audioEl = new Audio(audioUrl);
-      audioEl.play().catch(() => {});
-    }
-    await wait(Math.max(400, (seg.end - seg.start) * 1000));
-    if (audioEl) audioEl.pause();
   }
+  await waitUntilVideoTime(player, clip.endTime);
   player.pauseVideo();
   el('btnPlayDub').disabled = false;
 }
