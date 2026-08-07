@@ -1,7 +1,7 @@
 {
   "packId": "demo-open-license",
   "packName": "Demo-Pack (offen lizenziert)",
-  "packDescription": "Ausschnitte aus 'Tears of Steel' (Blender Foundation, 2012), veröffentlicht unter CC BY 3.0. Nur zu Demo-Zwecken. Für eigene Clips: im Spiel 'Eigenen Clip verwenden' nutzen.",
+  "packDescription": "Ausschnitte aus 'Tears of Steel', 'Sintel' und 'Elephants Dream' (Blender Foundation), alle CC BY. Nur zu Demo-Zwecken. Für eigene Clips: im Spiel 'Eigenen Clip verwenden' nutzen.",
   "clips": [
     {
       "id": "tos-scene-1",
@@ -29,6 +29,46 @@
       "license": "CC BY 3.0 – Blender Foundation (mango.blender.org)",
       "startTime": 400,
       "endTime": 510
+    },
+    {
+      "id": "sintel-scene-1",
+      "title": "Sintel – Szene: Begegnung",
+      "youtubeId": "eRsGyueVLvQ",
+      "sourceUrl": "https://www.youtube.com/watch?v=eRsGyueVLvQ",
+      "license": "CC BY 3.0 – Blender Foundation (durian.blender.org)",
+      "startTime": 180,
+      "endTime": 270,
+      "note": "Beispiel-Zeitstempel, bitte vor echtem Spielbetrieb im Video verifizieren."
+    },
+    {
+      "id": "sintel-scene-2",
+      "title": "Sintel – Szene: später im Film",
+      "youtubeId": "eRsGyueVLvQ",
+      "sourceUrl": "https://www.youtube.com/watch?v=eRsGyueVLvQ",
+      "license": "CC BY 3.0 – Blender Foundation (durian.blender.org)",
+      "startTime": 480,
+      "endTime": 570,
+      "note": "Beispiel-Zeitstempel, bitte vor echtem Spielbetrieb im Video verifizieren."
+    },
+    {
+      "id": "elephants-dream-scene-1",
+      "title": "Elephants Dream – Proog und Emo (früh)",
+      "youtubeId": "sCIIBtyoO0A",
+      "sourceUrl": "https://www.youtube.com/watch?v=sCIIBtyoO0A",
+      "license": "CC BY 2.5 – Blender Foundation (orange.blender.org)",
+      "startTime": 60,
+      "endTime": 140,
+      "note": "Beispiel-Zeitstempel, bitte vor echtem Spielbetrieb im Video verifizieren. Zwei Charaktere (Proog, Emo) im durchgehenden Dialog."
+    },
+    {
+      "id": "elephants-dream-scene-2",
+      "title": "Elephants Dream – Proog und Emo (später)",
+      "youtubeId": "sCIIBtyoO0A",
+      "sourceUrl": "https://www.youtube.com/watch?v=sCIIBtyoO0A",
+      "license": "CC BY 2.5 – Blender Foundation (orange.blender.org)",
+      "startTime": 300,
+      "endTime": 380,
+      "note": "Beispiel-Zeitstempel, bitte vor echtem Spielbetrieb im Video verifizieren. Zwei Charaktere (Proog, Emo) im durchgehenden Dialog."
     }
   ]
 }
