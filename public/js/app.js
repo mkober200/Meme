@@ -240,6 +240,13 @@ function whenYouTubeReady(fn) {
   if (ytApiReady) fn(); else ytReadyQueue.push(fn);
 }
 
+function ytErrorMessage(code) {
+  if (code === 101 || code === 150) return 'Dieses Video lässt sich nicht einbetten – der Uploader hat das deaktiviert. Bitte einen anderen Clip wählen.';
+  if (code === 100) return 'Video nicht gefunden (privat, gelöscht oder nicht verfügbar). Bitte einen anderen Clip wählen.';
+  if (code === 2) return 'Ungültige Video-ID. Bitte den YouTube-Link prüfen.';
+  return `Video konnte nicht geladen werden (Fehlercode ${code}). Bitte einen anderen Clip wählen.`;
+}
+
 function getOrCreateDubPlayer(videoId) {
   return new Promise((resolve) => {
     whenYouTubeReady(() => {
@@ -249,7 +256,15 @@ function getOrCreateDubPlayer(videoId) {
         height: '100%',
         videoId,
         playerVars: { controls: 0, disablekb: 1, modestbranding: 1, rel: 0, playsinline: 1 },
-        events: { onReady: () => resolve(state.ytDub) },
+        events: {
+          onReady: () => resolve(state.ytDub),
+          onError: (e) => {
+            clearInterval(clipLoopWatcher);
+            el('recordOverlay').classList.remove('playing');
+            el('btnRecord').classList.add('hidden');
+            el('recordHint').textContent = ytErrorMessage(e.data);
+          },
+        },
       });
     });
   });
@@ -263,7 +278,13 @@ function getOrCreateVotePlayer(videoId) {
         height: '100%',
         videoId,
         playerVars: { controls: 0, disablekb: 1, modestbranding: 1, rel: 0, playsinline: 1 },
-        events: { onReady: () => resolve(state.ytVote) },
+        events: {
+          onReady: () => resolve(state.ytVote),
+          onError: (e) => {
+            el('voteStatus').textContent = ytErrorMessage(e.data);
+            el('btnPlayDub').disabled = true;
+          },
+        },
       });
     });
   });
@@ -561,50 +582,3 @@ async function playDubReconstruction(target) {
 }
 
 document.querySelectorAll('.vote-btn').forEach((btn) => {
-  btn.addEventListener('click', async () => {
-    if (state.votedThisTarget || !state.voteTarget) return;
-    const vote = btn.dataset.vote;
-    const res = await emitAck('voting:vote', { targetPlayerId: state.voteTarget.playerId, vote });
-    if (!res.ok) return alert(res.error);
-    state.votedThisTarget = true;
-    setVoteButtonsEnabled(false);
-    el('voteStatus').textContent = 'Stimme abgegeben – warte auf die anderen…';
-  });
-});
-function setVoteButtonsEnabled(enabled) {
-  document.querySelectorAll('.vote-btn').forEach((b) => { b.disabled = !enabled; });
-}
-socket.on('voting:progress', ({ votesSoFar, votesNeeded }) => {
-  if (!state.votedThisTarget) return;
-  el('voteStatus').textContent = `${votesSoFar}/${votesNeeded} haben abgestimmt…`;
-});
-
-socket.on('round:results', ({ leaderboard }) => {
-  showScreen('screen-round-results');
-  renderLeaderboard('leaderboard', leaderboard);
-  el('btnNextRound').classList.toggle('hidden', !state.isHost);
-  el('waitingForHostResults').classList.toggle('hidden', state.isHost);
-});
-
-el('btnNextRound').addEventListener('click', async () => {
-  el('btnNextRound').disabled = true;
-  const res = await emitAck('game:next', {});
-  el('btnNextRound').disabled = false;
-  if (!res.ok) alert(res.error);
-});
-
-function renderLeaderboard(listId, entries) {
-  const list = el(listId);
-  list.innerHTML = '';
-  entries.forEach((p, i) => {
-    const li = document.createElement('li');
-    li.innerHTML = `<span><span class="rank">#${i + 1}</span>${escapeHtml(p.name)}</span><span class="score">${p.score} Pkt.</span>`;
-    list.appendChild(li);
-  });
-}
-
-socket.on('game:over', ({ leaderboard }) => {
-  showScreen('screen-gameover');
-  renderLeaderboard('finalLeaderboard', leaderboard);
-});
-el('btnRestart').addEventListener('click', () => window.location.reload());
