@@ -1,5 +1,10 @@
 'use strict';
 
+/* ==========================================================
+   DubClash – Client
+   Reines Vanilla-JS, kein Build-Schritt nötig.
+   ========================================================== */
+
 const el = (id) => document.getElementById(id);
 const socket = io();
 
@@ -121,7 +126,9 @@ function applyJoinResult(res) {
 let lastLobbyStatePayload = null;
 socket.on('lobby:state', (payload) => {
   lastLobbyStatePayload = payload;
-  state.isHost = payload.hostId === state.playerId;
+  if (state.playerId) {
+    state.isHost = payload.hostId === state.playerId;
+  }
   if (payload.round > 0) {
     el('roundBadge').textContent = `Runde ${payload.round}/${payload.config.maxRounds}`;
     el('roundBadge').classList.remove('hidden');
@@ -153,7 +160,7 @@ function renderLobby(payload) {
   el('cfgRounds').value = String(payload.config.maxRounds);
   el('cfgSkips').value = String(payload.config.skipsAllowed);
 
-  const amHost = payload.hostId === state.playerId;
+  const amHost = state.isHost;
   ['cfgMinutes', 'cfgRounds', 'cfgSkips', 'cfgPack'].forEach((id) => { el(id).disabled = !amHost; });
   el('btnStart').classList.toggle('hidden', !amHost);
   el('waitingForHost').classList.toggle('hidden', amHost);
