@@ -54,7 +54,6 @@ function sendRoundAssignment(lobby, playerId) {
     maxRounds: lobby.config.maxRounds,
   });
 }
-
 function beginRoundAndNotify(lobby) {
   clearRoundTimer(lobby.code);
   for (const player of lobby.connectedPlayers()) {
@@ -98,7 +97,7 @@ function sendVotingTarget(lobby) {
     playerId: target.playerId,
     playerName: target.playerName,
     clip: target.clip,
-    recordings: target.recordings,
+    cuts: target.cuts,
     index: lobby.votingIndex,
     total: lobby.votingOrder.length,
   });
@@ -185,10 +184,18 @@ io.on('connection', (socket) => {
     ack && ack({ ok: true, clip: result.clip, skipsUsed: result.skipsUsed });
   }));
 
-  socket.on('round:submit', withErrorHandling('round:submit', ({ recordings } = {}, ack) => {
+  socket.on('round:useCustomClip', withErrorHandling('round:useCustomClip', (input = {}, ack) => {
     const lobby = lobbyLogic.getLobby(socket.data.code);
     if (!lobby) return ack && ack({ ok: false, error: 'Keine Lobby.' });
-    const result = lobbyLogic.submitDub(lobby, socket.data.playerId, recordings);
+    const result = lobbyLogic.useCustomClip(lobby, socket.data.playerId, input);
+    if (result.error) return ack && ack({ ok: false, error: result.error });
+    ack && ack({ ok: true, clip: result.clip });
+  }));
+
+  socket.on('round:submit', withErrorHandling('round:submit', ({ cuts } = {}, ack) => {
+    const lobby = lobbyLogic.getLobby(socket.data.code);
+    if (!lobby) return ack && ack({ ok: false, error: 'Keine Lobby.' });
+    const result = lobbyLogic.submitDub(lobby, socket.data.playerId, cuts);
     if (result.error) return ack && ack({ ok: false, error: result.error });
     ack && ack({ ok: true });
     broadcastLobbyState(lobby);
