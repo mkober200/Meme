@@ -21,6 +21,7 @@
 
 <main id="app" class="stage">
 
+  <!-- SCREEN: START -->
   <section id="screen-start" class="screen monitor">
     <h1 class="display-lg">Synchronisier den Clip.<br>Gewinne die Lobby.</h1>
     <p class="lede">Jeder bekommt einen stummen Filmausschnitt und muss ihn live mit der eigenen Stimme nachsynchronisieren. Danach stimmt die Lobby ab.</p>
@@ -51,6 +52,7 @@
     <p id="startError" class="error hidden"></p>
   </section>
 
+  <!-- SCREEN: LOBBY / WARTERAUM -->
   <section id="screen-lobby" class="screen monitor hidden">
     <div class="lobby-head">
       <h2>Warteraum</h2>
@@ -83,6 +85,7 @@
     <p id="waitingForHost" class="muted hidden">Warte auf den Host, um zu starten…</p>
   </section>
 
+  <!-- SCREEN: MIC-CONSENT -->
   <section id="screen-mic" class="screen monitor hidden">
     <h2>Mikrofon aktivieren</h2>
     <p class="lede">DubClash nimmt deine Stimme nur für diese Runde auf und speichert sie nirgends dauerhaft. Die Aufnahme läuft ausschließlich lokal in deinem Browser, bis du sie abschickst.</p>
@@ -90,10 +93,11 @@
     <p id="micError" class="error hidden"></p>
   </section>
 
+  <!-- SCREEN: DUBBING -->
   <section id="screen-dub" class="screen monitor hidden">
     <div class="dub-head">
       <div class="timer mono" id="dubTimer">--:--</div>
-      <div class="segments" id="segmentTrack"></div>
+      <div class="cuts-counter mono" id="cutsCounter">0 Einwürfe</div>
       <button id="btnSkip" class="btn btn-ghost btn-sm">Clip überspringen (<span id="skipsLeft">0</span>)</button>
     </div>
 
@@ -109,12 +113,33 @@
     <p id="dubCredit" class="muted small"></p>
 
     <div class="dub-actions">
-      <button id="btnNextSegment" class="btn btn-outline hidden">Weiter zum nächsten Cut</button>
-      <button id="btnSubmitDub" class="btn btn-accent hidden">Fertig – abgeben</button>
+      <button id="btnSubmitDub" class="btn btn-accent">Fertig – abgeben</button>
     </div>
     <p id="waitingForOthers" class="muted hidden">Abgegeben! Warte auf die anderen Spieler…</p>
+
+    <details class="custom-clip">
+      <summary>Eigenen Clip verwenden</summary>
+      <p class="muted small">Beliebigen YouTube-Link einfügen – ihr seid dafür verantwortlich, dass die Nutzung zulässig ist.</p>
+      <label class="field">
+        <span>YouTube-Link oder Video-ID</span>
+        <input id="customYoutube" type="text" placeholder="https://youtube.com/watch?v=..." />
+      </label>
+      <div class="custom-clip-times">
+        <label class="field">
+          <span>Start (Sek.)</span>
+          <input id="customStart" type="number" min="0" value="0" />
+        </label>
+        <label class="field">
+          <span>Ende (Sek.)</span>
+          <input id="customEnd" type="number" min="1" value="60" />
+        </label>
+      </div>
+      <button id="btnUseCustomClip" class="btn btn-outline btn-sm">Verwenden</button>
+      <p id="customClipError" class="error hidden small"></p>
+    </details>
   </section>
 
+  <!-- SCREEN: VOTING -->
   <section id="screen-vote" class="screen monitor hidden">
     <h2>Abstimmung – <span id="voteProgress"></span></h2>
     <div class="video-wrap">
@@ -130,6 +155,7 @@
     <p id="voteStatus" class="muted"></p>
   </section>
 
+  <!-- SCREEN: ROUND RESULTS -->
   <section id="screen-round-results" class="screen monitor hidden">
     <h2>Rundenergebnis</h2>
     <ol id="leaderboard" class="leaderboard"></ol>
@@ -137,6 +163,7 @@
     <p id="waitingForHostResults" class="muted hidden">Warte auf den Host…</p>
   </section>
 
+  <!-- SCREEN: GAME OVER -->
   <section id="screen-gameover" class="screen monitor hidden">
     <h2>Spiel vorbei!</h2>
     <ol id="finalLeaderboard" class="leaderboard"></ol>
