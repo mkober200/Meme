@@ -269,4 +269,20 @@ h3 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: 
 @media (prefers-reduced-motion: reduce) {
   .record-btn.recording { animation: none; }
   .btn { transition: none; }
+}.cuts-counter { flex: 1; color: var(--text-muted); font-size: 14px; }
+
+.custom-clip {
+  margin-top: 18px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
 }
+.custom-clip summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+.custom-clip summary:hover { color: var(--text); }
+.custom-clip .field { margin-top: 12px; margin-bottom: 10px; }
+.custom-clip-times { display: flex; gap: 12px; }
+.custom-clip-times .field { flex: 1; }
