@@ -157,13 +157,58 @@ function beginRound(lobby) {
     lobby.assignments.set(player.id, {
       clip,
       skipsUsed: 0,
-      recordings: {},
+      cuts: [],
       submitted: false,
     });
   }
 
   lobby.roundDeadline = Date.now() + lobby.config.minutesPerClip * 60 * 1000;
   return { ok: true };
+}
+
+const YOUTUBE_ID_RE = /^[A-Za-z0-9_-]{11}$/;
+const MAX_CUSTOM_CLIP_SECONDS = 600;
+
+function useCustomClip(lobby, playerId, input) {
+  const assignment = lobby.assignments.get(playerId);
+  if (!assignment) return { error: 'Keine aktive Zuweisung.' };
+  if (lobby.state !== 'DUBBING') return { error: 'Eigene Clips lassen sich nur während der Aufnahmephase setzen.' };
+
+  const youtubeId = extractYoutubeId(String(input.youtubeId || ''));
+  if (!youtubeId) return { error: 'Keine gültige YouTube-Video-ID/URL erkannt.' };
+
+  const startTime = Number(input.startTime);
+  const endTime = Number(input.endTime);
+  if (!Number.isFinite(startTime) || !Number.isFinite(endTime) || startTime < 0 || endTime <= startTime) {
+    return { error: 'Start-/Endzeit ungültig (Ende muss nach Start liegen).' };
+  }
+  if (endTime - startTime > MAX_CUSTOM_CLIP_SECONDS) {
+    return { error: `Clip darf maximal ${MAX_CUSTOM_CLIP_SECONDS / 60} Minuten lang sein.` };
+  }
+
+  assignment.clip = {
+    id: `custom-${Math.random().toString(36).slice(2, 10)}`,
+    title: 'Eigener Clip',
+    youtubeId,
+    startTime,
+    endTime,
+    custom: true,
+  };
+  assignment.cuts = [];
+  return { clip: assignment.clip };
+}
+
+function extractYoutubeId(raw) {
+  const trimmed = raw.trim();
+  if (YOUTUBE_ID_RE.test(trimmed)) return trimmed;
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtube\.com\/embed\/|youtu\.be\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{11})/,
+  ];
+  for (const re of patterns) {
+    const m = trimmed.match(re);
+    if (m) return m[1];
+  }
+  return null;
 }
 
 function skipClip(lobby, playerId) {
@@ -175,15 +220,15 @@ function skipClip(lobby, playerId) {
   }
   assignment.skipsUsed += 1;
   assignment.clip = pickClipForPlayer(lobby);
-  assignment.recordings = {};
+  assignment.cuts = [];
   return { clip: assignment.clip, skipsUsed: assignment.skipsUsed };
 }
 
-function submitDub(lobby, playerId, recordings) {
+function submitDub(lobby, playerId, cuts) {
   const assignment = lobby.assignments.get(playerId);
   if (!assignment) return { error: 'Keine aktive Zuweisung.' };
   if (assignment.submitted) return { error: 'Bereits abgegeben.' };
-  assignment.recordings = recordings || {};
+  assignment.cuts = Array.isArray(cuts) ? cuts.slice().sort((a, b) => a.t - b.t) : [];
   assignment.submitted = true;
 
   const allSubmitted = lobby.connectedPlayers().every((p) => {
@@ -221,7 +266,7 @@ function currentVotingTarget(lobby) {
   if (!targetId) return null;
   const player = lobby.players.get(targetId);
   const assignment = lobby.assignments.get(targetId);
-  return { playerId: targetId, playerName: player ? player.name : '?', clip: assignment.clip, recordings: assignment.recordings };
+  return { playerId: targetId, playerName: player ? player.name : '?', clip: assignment.clip, cuts: assignment.cuts };
 }
 
 function castVote(lobby, targetPlayerId, voterId, vote) {
@@ -297,6 +342,7 @@ module.exports = {
   updateConfig,
   startGame,
   skipClip,
+  useCustomClip,
   submitDub,
   forceSubmitRemaining,
   currentVotingTarget,
