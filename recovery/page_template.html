@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pulsbuch</title>
+<style>
+  :root {
+    --bg: #0A0A0A; --card: #161616;
+    --t1: #F2F2F2; --t2: #B4B4B4; --t3: #969696;
+    --line: rgba(255,255,255,0.11);
+    --green: #3FBF6A; --yellow: #E0B23C; --red: #E05555;
+    --accent: #D97757;
+    --ph-tief: #E6E6E6; --ph-rem: #B4B4B4; --ph-leicht: #787878; --ph-wach: #444444;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--t1); }
+  body { font-family: system-ui, "Helvetica Neue", Arial, sans-serif; font-size: 15px; line-height: 1.45; }
+  .col { max-width: 520px; margin: 0 auto; padding: 16px 16px 48px; }
+  .num { letter-spacing: -0.03em; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .cap { text-transform: uppercase; letter-spacing: 0.16em; font-size: 11px; color: var(--t3); }
+  .t2 { color: var(--t2); } .t3 { color: var(--t3); }
+
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .mark { width: 28px; height: 28px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); flex: none; }
+  .pill { position: relative; border: 1px solid var(--line); border-radius: 999px; background: var(--card); }
+  .pill select { appearance: none; -webkit-appearance: none; background: transparent; border: 0; color: var(--t1);
+    font: inherit; font-weight: 600; letter-spacing: -0.03em; padding: 6px 30px 6px 16px; cursor: pointer; }
+  .pill::after { content: "▾"; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--t3); pointer-events: none; font-size: 12px; }
+  .pill select option { background: var(--card); color: var(--t1); }
+  .src { text-align: right; }
+  .wordmark { text-align: center; margin: 22px 0 18px; letter-spacing: 0.42em; font-size: 11px; color: var(--t2); text-transform: uppercase; padding-left: 0.42em; }
+
+  .rings { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .ring { display: flex; flex-direction: column; align-items: center; }
+  .ring svg { display: block; }
+  .ring .lbl { text-transform: uppercase; color: var(--t3); }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; margin-top: 16px; }
+  h2 { margin: 28px 0 0; font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--t3); }
+  .verdict b { font-size: 18px; letter-spacing: -0.01em; }
+  .verdict p { margin: 8px 0 0; color: var(--t2); }
+
+  .row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .row:first-child { border-top: 0; padding-top: 0; }
+  .row .k { color: var(--t2); flex: none; } .row .v { text-align: right; }
+  .sub { font-size: 12px; color: var(--t3); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: right; font-weight: 400; color: var(--t3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; padding: 0 0 8px; }
+  th:first-child, td:first-child { text-align: left; }
+  td { text-align: right; padding: 8px 0; border-top: 1px solid var(--line); white-space: nowrap; }
+  td + td, th + th { padding-left: 8px; }
+
+  .strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; align-items: start; margin-top: 16px; }
+  .strip .bar { background: #3A3A3A; border-radius: 4px; width: 100%; }
+  .strip .bar.sel { background: var(--accent); }
+  .strip .cell { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .strip .val { font-size: 12px; }
+  .strip .day { font-size: 11px; color: var(--t3); text-align: center; white-space: nowrap; line-height: 1.3; }
+  .strip .plot { height: 84px; width: 100%; display: flex; align-items: end; }
+
+  .phasebar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; margin: 14px 0 10px; border: 1px solid var(--line); }
+  .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 13px; } .legend > div { white-space: nowrap; }
+  .legend span.sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: -1px; border: 1px solid var(--line); }
+
+  pre { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--t2); margin: 0; }
+  .chart svg { display: block; width: 100%; height: auto; }
+  ul { margin: 6px 0 0; padding-left: 18px; color: var(--t2); }
+  li { margin: 4px 0; }
+</style>
+</head>
+<body>
+<div class="col">
+  <header>
+    <div class="mark" aria-hidden="true"></div>
+    <label class="pill"><select id="pick" aria-label="Datum wählen"></select></label>
+    <div class="cap src">COROS<br>Pace 3</div>
+  </header>
+  <div class="wordmark">Pulsbuch</div>
+
+  <section class="rings" id="rings"></section>
+  <section class="card verdict" id="verdict"></section>
+
+  <h2>Mein Tag</h2>
+  <section class="card" id="myday"></section>
+
+  <h2>Recovery</h2>
+  <section class="card" id="recovery"></section>
+
+  <h2>Sleep</h2>
+  <section class="card" id="sleep"></section>
+
+  <h2>Strain</h2>
+  <section class="card" id="strain"></section>
+
+  <h2>Richtung</h2>
+  <section class="card" id="direction"></section>
+
+  <h2>Ehrlichkeitscheck</h2>
+  <section class="card" id="honesty"></section>
+</div>
+
+<script>
+const DATA = /*__DATA__*/null;
+const $ = id => document.getElementById(id);
+const fmt = (x, d = 0) => x == null ? "–" : x.toLocaleString("de-DE", { minimumFractionDigits: d, maximumFractionDigits: d });
+const hm = m => m == null ? "–" : `${Math.floor(Math.round(m) / 60)} h ${String(Math.round(m) % 60).padStart(2, "0")} min`;
+const WD = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+const dlabel = (iso, long) => { const d = new Date(iso + "T12:00:00"); return long
+  ? d.toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "short", year: "numeric" })
+  : `${WD[d.getDay()]} ${d.getDate()}.${d.getMonth() + 1}.`; };
+const BANDCOL = { gruen: "var(--green)", gelb: "var(--yellow)", rot: "var(--red)" };
+const BANDWORD = { gruen: "Grün", gelb: "Gelb", rot: "Rot" };
+const LAGE = { drin: "im Zielband", darunter: "unter dem Zielband", darueber: "über dem Zielband" };
+const strainBand = s => s < 10 ? "leicht" : s < 14 ? "moderat" : s < 18 ? "hoch" : "alles gegeben";
+const order = DATA.reihenfolge;
+let sel = DATA.heute;
+
+// ---------- Datumsauswahl ----------
+for (const d of [...order].reverse()) {
+  const o = document.createElement("option"); o.value = d; o.textContent = dlabel(d, true); $("pick").appendChild(o);
+}
+$("pick").value = sel;
+$("pick").addEventListener("change", e => { sel = e.target.value; render(); });
+
+// ---------- Ringe ----------
+function rings() {
+  const box = $("rings"); const pitch = box.clientWidth / 3;      // Abstand der Ringmitten
+  const D = 0.72 * pitch, sw = 0.065 * D, r = (D - sw) / 2, C = 2 * Math.PI * r;
+  const v = DATA.tage[sel];
+  const items = [
+    { name: "Sleep", frac: v.schlaf && v.schlaf.leistung != null ? Math.min(1, v.schlaf.leistung / 100) : null,
+      text: v.schlaf && v.schlaf.leistung != null ? fmt(v.schlaf.leistung) + "%" : "–", col: "var(--accent)" },
+    { name: "Recovery", frac: v.rec ? v.rec.wert / 100 : null, text: v.rec ? fmt(v.rec.wert) + "%" : "–",
+      col: v.rec ? BANDCOL[v.rec.band] : "var(--t3)" },
+    { name: "Strain", frac: v.belastung / 21, text: fmt(v.belastung, 1), col: "var(--accent)" },
+  ];
+  box.innerHTML = items.map(it => `
+    <div class="ring">
+      <svg width="${D}" height="${D}" viewBox="0 0 ${D} ${D}" role="img" aria-label="${it.name} ${it.text}">
+        <circle cx="${D/2}" cy="${D/2}" r="${r}" fill="none" stroke="rgba(255,255,255,0.11)" stroke-width="${sw}"/>
+        ${it.frac == null ? "" : `<circle cx="${D/2}" cy="${D/2}" r="${r}" fill="none" stroke="${it.col}" stroke-width="${sw}"
+          stroke-linecap="${it.frac >= 1 ? "butt" : "round"}" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - Math.max(0, Math.min(1, it.frac)))}"
+          transform="rotate(-90 ${D/2} ${D/2})"/>`}
+        <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" fill="var(--t1)"
+          style="font-size:${0.32 * D * (it.text.length > 3 ? 0.82 : 1)}px;font-weight:600;letter-spacing:-0.03em">${it.text}</text>
+      </svg>
+      <div class="lbl" style="font-size:${0.12 * D}px;letter-spacing:0.19em;margin-top:${0.14 * D}px">${it.name}</div>
+    </div>`).join("");
+}
+
+// ---------- Befund ----------
+function verdict() {
+  const v = DATA.tage[sel]; const isToday = sel === DATA.heute; const s = [];
+  if (!v.rec) {
+    $("verdict").innerHTML = `<b>Keine Daten</b><p>Für die Nacht zum ${dlabel(sel)} gibt es weder HRV noch Ruhepuls noch Schlaf. Die Uhr war vermutlich nachts nicht am Handgelenk – tagsüber laden, nicht nachts.</p>`;
+    return;
+  }
+  const r = v.rec;
+  s.push(`Deine Recovery liegt bei ${fmt(r.wert)} %, Band ${BANDWORD[r.band].toLowerCase()}. Daraus folgt ein Belastungsziel von ${fmt(r.ziel[0], 1)} bis ${fmt(r.ziel[1], 1)}.`);
+  s.push(`${isToday ? "Bisher liegst du" : "Du lagst"} mit ${fmt(v.belastung, 1)} ${LAGE[r.lage]}${v.einheiten.length ? "" : " – ohne aufgezeichnete Einheit"}.`);
+  if (v.schlaf && v.schlaf.geschlafen != null)
+    s.push(`Geschlafen hast du ${hm(v.schlaf.geschlafen)}, ${fmt(v.schlaf.leistung)} % von ${hm(v.schlaf.bedarf)} Bedarf.`);
+  else s.push("Für diese Nacht fehlt die Schlafdauer.");
+  const missing = ["hrv", "rhr", "schlaf"].filter(k => !r.teile[k]);
+  $("verdict").innerHTML = `<b>${BANDWORD[r.band]}</b><p>${s.join(" ")}</p>` +
+    (missing.length ? `<p class="sub">Ohne ${missing.join(", ")} gerechnet, Gewicht anteilig verteilt.</p>` : "") +
+    (isToday ? `<p class="sub">Stand der letzten Synchronisierung. Der Tag läuft noch.</p>` : "");
+}
+
+// ---------- Mein Tag ----------
+function myday() {
+  const v = DATA.tage[sel];
+  const list = v.einheiten.length ? v.einheiten.map(a => `
+    <div class="row"><div><div>${a.art}</div><div class="sub">${a.dauer} · ${a.puls ? a.puls + " bpm Ø" : "kein Puls aufgezeichnet"}</div></div>
+    <div class="v num">${a.last}<div class="sub">Lastpunkte</div></div></div>`).join("")
+    : `<div class="row"><div class="t2">Keine Einheit aufgezeichnet. Das heißt nicht Ruhe: Was die Uhr nicht sieht (z.&nbsp;B. Rad mit anderem Computer), fehlt hier.</div></div>`;
+  $("myday").innerHTML = list + `
+    <div class="row"><div class="k">Tageslast</div><div class="v num">${fmt(v.tageslast)}<div class="sub">Σ Training Load + 4,0</div></div></div>
+    <div class="row"><div class="k">Anker</div><div class="v num">${fmt(DATA.anker)}<div class="sub">höchste Tageslast der 90 Tage (08.08., Triathlon)</div></div></div>
+    <div class="row"><div class="k">Strain</div><div class="v num">${fmt(v.belastung, 1)}<div class="sub">${strainBand(v.belastung)}</div></div></div>`;
+}
+
+// ---------- Recovery ----------
+function seven() { const i = order.indexOf(sel); return order.slice(Math.max(0, i - 6), i + 1); }
+function strip(vals, unit, max) {
+  return `<div class="strip">${vals.map(o => `
+    <div class="cell"><div class="val num">${o.v == null ? "–" : fmt(o.v, o.dec || 0) + unit}</div>
+      <div class="plot">${o.v == null ? "" : `<div class="bar ${o.d === sel ? "sel" : ""}" style="height:${Math.max(3, 84 * o.v / max)}px"></div>`}</div>
+      <div class="day">${dlabel(o.d).split(" ").join("<br>")}</div></div>`).join("")}</div>`;
+}
+function recovery() {
+  const v = DATA.tage[sel];
+  let h = "";
+  if (v.rec) {
+    const t = v.rec.teile, rows = [];
+    if (t.hrv) rows.push(["HRV", `${fmt(t.hrv.roh)} ms`, `${fmt(t.hrv.basis.mean, 1)} ± ${fmt(t.hrv.basis.sd, 1)}`, t.hrv]);
+    if (t.rhr) rows.push(["Ruhepuls", `${fmt(t.rhr.roh)} bpm`, `${fmt(t.rhr.basis.mean, 1)} ± ${fmt(t.rhr.basis.sd, 1)}`, t.rhr]);
+    if (t.schlaf) rows.push(["Schlafleistung", `${fmt(t.schlaf.roh)} %`, "–", t.schlaf]);
+    h = `<table><tr><th>Eingabe</th><th>Roh</th><th>Basis</th><th>z</th><th>Wert</th><th>Gew.</th></tr>` +
+      rows.map(([n, roh, b, p]) => `<tr><td>${n}</td><td class="num">${roh}</td><td class="num">${b}</td>
+        <td class="num">${p.z == null ? "–" : (p.z > 0 ? "+" : "") + fmt(p.z, 2)}</td><td class="num">${fmt(p.wert)}</td><td class="num">${fmt(p.gewicht, 2)}</td></tr>`).join("") +
+      `<tr><td>Recovery</td><td></td><td></td><td></td><td class="num">${fmt(v.rec.wert)}</td><td class="num">1,00</td></tr></table>
+      <p class="sub">Atemfrequenz, Sauerstoffsättigung und Hauttemperatur liefert COROS nicht – sie sind raus, die Gewichte sind 0,50 / 0,25 / 0,25.
+      Basis n = ${t.hrv ? t.hrv.basis.n : "–"} Nächte (HRV), ${t.rhr ? t.rhr.basis.n : "–"} Tage (Ruhepuls), Basis = Mittel ± Streuung, rollend 30 Tage bis einschließlich dieser Nacht.</p>`;
+  } else h = `<p class="t2">Keine Eingaben für diese Nacht.</p>`;
+  h += strip(seven().map(d => ({ d, v: DATA.tage[d].rec ? DATA.tage[d].rec.wert : null })), "", 100);
+  $("recovery").innerHTML = h;
+}
+
+// ---------- Sleep ----------
+function sleep() {
+  const v = DATA.tage[sel], s = v.schlaf;
+  if (!s) { $("sleep").innerHTML = `<p class="t2">Keine Schlafdaten für diese Nacht.</p>`; return; }
+  let h = `
+    <div class="row"><div class="k">Grundbedarf</div><div class="v num">${hm(s.grund)}<div class="sub">anpassbar in model.py</div></div></div>
+    <div class="row"><div class="k">+ Strain von gestern</div><div class="v num">${s.f_belastung == null ? "–" : fmt(s.f_belastung, 1) + " min"}<div class="sub">Strain ${fmt(s.belastung_gestern, 1)}</div></div></div>
+    <div class="row"><div class="k">+ Defizit</div><div class="v num">${fmt(s.defizit, 0)} min<div class="sub">0,35 × ${fmt(s.fehlstunden_3n)} min Fehlzeit aus 3 Nächten, max. 90 min${s.fehlende_naechte.length ? " · ohne Daten: " + s.fehlende_naechte.map(x => dlabel(x)).join(", ") : ""}</div></div></div>
+    <div class="row"><div class="k">− Nickerchen</div><div class="v num">${fmt(s.nickerchen)} min</div></div>
+    <div class="row"><div class="k">Bedarf</div><div class="v num">${hm(s.bedarf)}</div></div>
+    <div class="row"><div class="k">Geschlafen</div><div class="v num">${hm(s.geschlafen)}<div class="sub">${fmt(s.leistung)} % des Bedarfs</div></div></div>`;
+  if (v.phasen) {
+    const p = v.phasen, tot = p.tief + p.leicht + p.rem + p.wach + p.nicht_zugeordnet;
+    const seg = [["Tief", p.tief, "var(--ph-tief)"], ["REM", p.rem, "var(--ph-rem)"], ["Leicht", p.leicht, "var(--ph-leicht)"], ["Wach", p.wach, "var(--ph-wach)"]];
+    if (p.nicht_zugeordnet) seg.push(["Nicht zugeordnet", p.nicht_zugeordnet, "transparent"]);
+    h += `<div class="phasebar">${seg.map(([, m, c]) => `<div style="width:${100 * m / tot}%;background:${c}"></div>`).join("")}</div>
+      <div class="legend">${seg.map(([n, m, c]) => `<div><span class="sw" style="background:${c}"></span>${n} <span class="num">${fmt(100 * m / tot)} %</span> <span class="t3">${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}</span></div>`).join("")}</div>
+      ${p.nicht_zugeordnet ? `<p class="sub">COROS zählt ${hm(p.nicht_zugeordnet)} dieser Nacht als Schlaf, ordnet sie aber keiner Phase zu.</p>` : ""}`;
+  } else h += `<p class="sub">Für diese Nacht stimmen Schlaffenster und Phasenminuten nicht überein – keine Phasenaufteilung.</p>`;
+  if (v.im_bett) h += `
+    <div class="row" style="margin-top:12px"><div class="k">Zeit im Bett</div><div class="v num">${hm(v.im_bett)}<div class="sub">${v.fenster[0].slice(11)}–${v.fenster[1].slice(11)}</div></div></div>
+    <div class="row"><div class="k">Zeit im Schlaf</div><div class="v num">${hm(s.geschlafen)}</div></div>
+    <div class="row"><div class="k">Effizienz</div><div class="v num">${fmt(100 * s.geschlafen / v.im_bett)} %</div></div>`;
+  h += `<p class="sub">Schlafphasen sind am Handgelenk geschätzt. Deine Spannweite über ${DATA.check["2_spannweite"].n} volle Nächte: Tief ${fmt(DATA.check["2_spannweite"].tief[0], 1)}–${fmt(DATA.check["2_spannweite"].tief[1], 1)} %, REM ${fmt(DATA.check["2_spannweite"].rem[0], 1)}–${fmt(DATA.check["2_spannweite"].rem[1], 1)} %.</p>`;
+  $("sleep").innerHTML = h;
+}
+
+// ---------- Strain ----------
+function strain() {
+  const ds = seven();
+  let h = strip(ds.map(d => ({ d, v: DATA.tage[d].belastung, dec: 1 })), "", 21);
+  h += `<div class="strip" style="margin-top:6px">${ds.map(d => { const r = DATA.tage[d].rec;
+      return `<div class="cell"><div class="sub" style="text-align:center">${r ? { drin: "drin", darunter: "unter", darueber: "über" }[r.lage] : "–"}</div></div>`; }).join("")}</div>
+    <p class="sub">Skala 0–21, logarithmisch. Bänder: 0–9 leicht, 10–13 moderat, 14–17 hoch, 18–21 alles gegeben.
+    Zielband aus der Recovery: grün 14,0–18,0 · gelb 9,0–13,5 · rot 0–8,0.</p>`;
+  $("strain").innerHTML = h;
+}
+
+// ---------- Richtung ----------
+function lineChart(pts, opts) {   // pts: [[x, y]], x in Tagen
+  const W = 480, H = 140, P = { l: 30, r: 10, t: 10, b: 20 };
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const x0 = opts.x0 ?? Math.min(...xs), x1 = opts.x1 ?? Math.max(...xs);
+  const y0 = opts.y0 ?? Math.floor(Math.min(...ys) - 2), y1 = opts.y1 ?? Math.ceil(Math.max(...ys) + 2);
+  const X = x => P.l + (W - P.l - P.r) * (x - x0) / (x1 - x0), Y = y => H - P.b - (H - P.t - P.b) * (y - y0) / (y1 - y0);
+  const path = pts.map((p, i) => `${i ? "L" : "M"}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join("");
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opts.label}">
+    <line x1="${P.l}" x2="${W - P.r}" y1="${Y(y0)}" y2="${Y(y0)}" stroke="rgba(255,255,255,0.11)"/>
+    <text x="${P.l - 6}" y="${Y(y1)}" fill="#969696" font-size="11" text-anchor="end" dominant-baseline="hanging">${y1}</text>
+    <text x="${P.l - 6}" y="${Y(y0)}" fill="#969696" font-size="11" text-anchor="end">${y0}</text>
+    <path d="${path}" fill="none" stroke="#B4B4B4" stroke-width="1.5"/>`;
+  if (opts.trend) { const [a, b] = opts.trend; s += `<line x1="${X(x0)}" y1="${Y(a + b * x0)}" x2="${X(x1)}" y2="${Y(a + b * x1)}" stroke="#969696" stroke-width="1"/>`; }
+  if (opts.mark) s += `<circle cx="${X(opts.mark[0])}" cy="${Y(opts.mark[1])}" r="4" fill="var(--accent)"/>`;
+  return s + `<text x="${P.l}" y="${H - 4}" fill="#969696" font-size="11">${opts.xl0}</text>
+    <text x="${W - P.r}" y="${H - 4}" fill="#969696" font-size="11" text-anchor="end">${opts.xl1}</text></svg>`;
+}
+function fit(pts) { const n = pts.length, mx = pts.reduce((a, p) => a + p[0], 0) / n, my = pts.reduce((a, p) => a + p[1], 0) / n;
+  const b = pts.reduce((a, p) => a + (p[0] - mx) * (p[1] - my), 0) / pts.reduce((a, p) => a + (p[0] - mx) ** 2, 0); return [my - b * mx, b]; }
+function direction() {
+  const R = DATA.richtung, t0 = new Date(DATA.start + "T12:00:00");
+  const day = iso => Math.round((new Date(iso + "T12:00:00") - t0) / 864e5);
+  const rp = R.rhr.map(([d, y]) => [day(d), y]); const last = rp[rp.length - 1];
+  const ep = R.exercise.map(([w, m]) => [w, m]);
+  const vo2 = (R.vo2.match(/VO2max: (\d+)/) || [])[1];
+  $("direction").innerHTML = `
+    <div class="row"><div class="k">Alterstempo</div><div class="v t2">nicht berechenbar<div class="sub">COROS liefert keine Fitnessalter-Reihe. Eine Steigung ohne Reihe ist keine Steigung.</div></div></div>
+    <div class="row"><div class="k">Ruhepuls</div><div class="v num">${R.rhr_steigung > 0 ? "+" : ""}${fmt(R.rhr_steigung, 1)} bpm / 30 Tage<div class="sub">Gerade durch ${R.rhr.length} Tageswerte</div></div></div>
+    <div class="chart">${lineChart(rp, { label: "Ruhepuls über 90 Tage", trend: fit(rp), mark: last, xl0: dlabel(DATA.start), xl1: dlabel(DATA.heute) })}</div>
+    <p class="sub">Der Ruhepuls ${R.rhr_steigung > 0 ? "steigt" : "sinkt"} über den Zeitraum – das zeigt ${R.rhr_steigung > 0 ? "weg von" : "hin zu"} dem, was ein Fitnessmodell als jünger wertet.</p>
+    <div class="row"><div class="k">Training / Woche</div><div class="v num">${R.exercise_steigung > 0 ? "+" : ""}${fmt(R.exercise_steigung, 1)} min/Wo.<div class="sub">COROS-Feld „Exercise“, keine echten intensiven Minuten</div></div></div>
+    <div class="chart">${lineChart(ep, { label: "Trainingsminuten pro Woche", trend: fit(ep), y0: 0, mark: ep[ep.length - 1], xl0: "Woche ab " + dlabel(DATA.start), xl1: "Woche bis " + dlabel(DATA.heute) })}</div>
+    <p class="sub">Die Trainingsminuten ${R.exercise_steigung < 0 ? "fallen" : "steigen"} – zuletzt ${ep.slice(-3).map(p => p[1]).join(", ")} min pro Woche.</p>
+    <div class="row"><div class="k">VO2max</div><div class="v num">${vo2 || "–"}<div class="sub">nur ein aktueller Wert, keine Reihe – keine Richtung</div></div></div>
+    <div class="row"><div class="k">Profil</div><div class="v t2">${((R.profil.match(/Height: ([\d.]+ cm)/) || [])[1] || "–").replace(".", ",")} · ${((R.profil.match(/Weight: ([\d.]+ kg)/) || [])[1] || "–").replace(".", ",")}<div class="sub">Messstand unbekannt – COROS gibt kein Datum dazu</div></div></div>
+    <p class="sub">Was das nicht ist: kein Labor, keine Zellalterung, kein biologisches Alter. Es sind drei Messgrößen deiner Uhr und ihre Richtung.</p>`;
+}
+
+// ---------- Ehrlichkeitscheck ----------
+function honesty() {
+  const C = DATA.check, B = DATA.basis;
+  const p1 = C["1_phasenprobe"].naechte.map(n => `<tr><td>${dlabel(n.nacht)}</td><td class="num">${n.summe_phasen}</td><td class="num">${n.asleep_coros ?? "–"}</td><td class="num">${n.summe_mit_wach}</td><td class="num">${n.periode}</td><td>${n.stimmt ? "stimmt" : "weicht ab"}</td></tr>`).join("");
+  const v = C["5_verteilung"];
+  $("honesty").innerHTML = `
+    <p class="cap">1 · Phasensummen, 3 zufällige Nächte (Seed ${C["1_phasenprobe"].seed})</p>
+    <table><tr><th>Nacht</th><th>T+L+R</th><th>COROS schlaf</th><th>+Wach</th><th>Fenster</th><th></th></tr>${p1}</table>
+    <p class="sub">Minuten. Über alle 88 Nächte: 73 stimmen auf die Minute, 13 haben einen nicht zugeordneten Block, 2 passen nicht (13.07., 20.09.).</p>
+    <p class="cap" style="margin-top:16px">2 · Spannweite über ${C["2_spannweite"].n} volle Nächte</p>
+    <p class="num">Tief ${fmt(C["2_spannweite"].tief[0], 1)}–${fmt(C["2_spannweite"].tief[1], 1)} % · REM ${fmt(C["2_spannweite"].rem[0], 1)}–${fmt(C["2_spannweite"].rem[1], 1)} %</p>
+    <p class="cap" style="margin-top:16px">3 · Anzahlen der Basislinien</p>
+    <p>HRV ${C["3_anzahlen"].hrv_30} Nächte (30 T) von ${C["3_anzahlen"].hrv_alle} · Ruhepuls ${C["3_anzahlen"].rhr_30} Tage (30 T) · Schlaf ${C["3_anzahlen"].schlaf} Nächte (ohne 4 unter 4 h)</p>
+    <p class="sub">HRV-Mittel über alle Nächte ${fmt(B.hrv_all.mean, 1)} ms, über 30 Tage ${fmt(B.hrv_30.mean, 1)} ms – die HRV ist gewandert, deshalb das 30-Tage-Fenster. COROS' eigene Basislinie heute: ${B.coros_hrv_baseline_heute.baseline} ms. Schlaf: Median ${hm(B.sleep.median_min)}, 75. Perzentil ${hm(B.sleep.p75_min)}.</p>
+    <p class="cap" style="margin-top:16px">4 · Aktivität ohne Pulsdaten</p>
+    <p>${C["4_ohne_puls"].map(a => `${dlabel(a.datum)} ${a.art} (${a.dauer}, Last ${a.last})`).join("; ") || "keine"}</p>
+    <p class="cap" style="margin-top:16px">5 · Verteilung der Belastung, 91 Tage</p>
+    <p class="num">leicht ${v["leicht"] || 0} · moderat ${v["moderat"] || 0} · hoch ${v["hoch"] || 0} · alles gegeben ${v["alles gegeben"] || 0} · über 21: ${v["ueber 21"] || 0}</p>
+    <p class="sub">Anker = ${fmt(v.anker)} (höchste Tageslast). Mit dem 95. Perzentil (${fmt(v.p95, 1)}) lagen 3 Tage über 21 – daher das Maximum.</p>
+    <p class="cap" style="margin-top:16px">6 · Fitnessalter am Boden</p>
+    <p>Entfällt – keine Fitnessalter-Reihe.</p>
+    <p class="cap" style="margin-top:16px">7 · Tage ohne aufgezeichnete Aktivität</p>
+    <p>${C["7_ohne_aktivitaet"].anzahl} von ${C["7_ohne_aktivitaet"].von}. Fehlende Aufzeichnung ist nicht dasselbe wie Ruhe – die Belastung solcher Tage ist zu niedrig, nicht niedrig.</p>
+    <p class="cap" style="margin-top:16px">Kontrast (WCAG)</p>
+    <p class="num">${C.kontrast.map(k => `${k.text} auf ${k.grund}: ${fmt(k.verhaeltnis, 2)} : 1`).join("<br>")}</p>
+    <p class="cap" style="margin-top:16px">Bekannte Grenzen</p>
+    <ul>
+      <li>Schlafdauer = COROS „Main Sleep (asleep)“, inklusive nicht zugeordneter Blöcke.</li>
+      <li>Die Kopfzeile der COROS-Tagesdaten nennt „HRV Baseline: 42 ms“ – passt nicht zur nächtlichen Basislinie, nicht verwendet.</li>
+      <li>HRV-Rohpunkte wechseln ab 08.10. die Zeitzonen-Kennung (8 → 12). Die Nächte sind von COROS ihrem Aufwachtag zugeordnet, das ändert hier nichts.</li>
+      <li>Ohne Daten (Uhr nachts nicht getragen): 29.07., 02.10., 07.10.</li>
+    </ul>
+    <p class="cap" style="margin-top:16px">Formeln, wörtlich</p>
+<pre>ERHOLUNG, 0 bis 100 Prozent
+  hrv_z = (hrv_letzte_nacht - hrv_mittel) / hrv_streuung
+  rhr_z = (ruhepuls_heute - rhr_mittel) / rhr_streuung
+  hrv_wert    = begrenze(50 + 20 * hrv_z, 0, 100)
+  rhr_wert    = begrenze(50 - 20 * rhr_z, 0, 100)
+  schlaf_wert = min(100, schlafleistung_prozent)
+  erholung = 0,50 * hrv_wert + 0,25 * rhr_wert + 0,25 * schlaf_wert
+  Bänder: 67–100 grün, 34–66 gelb, 0–33 rot
+  hier: hrv_mittel/-streuung und rhr_mittel/-streuung über 30 Tage
+
+BELASTUNG, 0 bis 21
+  tageslast = Summe aller Training Load des Tages + 4,0
+  anker     = höchste Tageslast der letzten 90 Tage, mindestens 60
+              (Vorgabe: 95. Perzentil – ergab 3 Tage über 21)
+  belastung = min(21, 21 * ln(1 + tageslast / 12) / ln(1 + anker / 12))
+  Bänder: 0–9 leicht, 10–13 moderat, 14–17 hoch, 18–21 alles gegeben
+
+SCHLAFBEDARF
+  bedarf       = grundbedarf + f(belastung) + defizit - nickerchen
+  grundbedarf  = 8 Stunden 0 Minuten (anpassbar)
+  f(belastung) = 1,7 / (1 + e^((17 - belastung_gestern) / 3,5))   in Stunden
+  defizit      = min(0,35 * Summe der Fehlstunden gegenüber dem Grundbedarf
+                     über die letzten 3 Nächte, 1,5 Stunden)
+  schlafleistung = geschlafen / bedarf
+
+BELASTUNGSZIEL AUS DER ERHOLUNG
+  Erholung 67–100 %  grün   Zielbelastung 14,0 bis 18,0
+  Erholung 34–66 %   gelb   Zielbelastung  9,0 bis 13,5
+  Erholung  0–33 %   rot    Zielbelastung  0   bis  8,0</pre>`;
+}
+
+function render() { rings(); verdict(); myday(); recovery(); sleep(); strain(); direction(); honesty(); }
+render();
+let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(rings, 100); });
+</script>
+</body>
+</html>
