@@ -1,0 +1,11 @@
+# Gesundheitsdaten, Exporte, Token, Logs und virtuelle Umgebung nie versionieren
+data/
+*.zip
+*.xml
+*.json
+*.csv
+*.fit
+*.log
+.venv/
+venv/
+*token*
