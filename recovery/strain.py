@@ -14,7 +14,9 @@ for a in J["activities"]:
 days = [(START + timedelta(i)).isoformat() for i in range((TODAY - START).days + 1)]
 tageslast = {d: sum(a["trainingLoad"] for a in load.get(d, [])) + 4.0 for d in days}
 aktiv = [tageslast[d] for d in days if d in load]
-p95 = pctl(aktiv, 0.95); anker = max(60.0, p95)
+p95 = pctl(aktiv, 0.95)
+# Entscheid Schritt 5 (Option A): Anker = hoechste Tageslast, damit kein Tag ueber 21 liegt.
+anker = max(60.0, max(aktiv))
 def belastung_roh(tl): return 21 * math.log(1 + tl / 12) / math.log(1 + anker / 12)
 res = {d: belastung_roh(tageslast[d]) for d in days}
 band = lambda s: "leicht" if s < 10 else "moderat" if s < 14 else "hoch" if s < 18 else "alles gegeben"
